@@ -35,7 +35,8 @@ theremin/
 │   ├── modules/
 │   │   ├── audio.js      # Síntesis de audio y cuantización
 │   │   ├── motion.js     # Lectura de sensores
-│   │   └── storage.js    # Almacenamiento local
+│   │   ├── storage.js    # Almacenamiento local
+│   │   └── sketch.js         # Visualización p5.js
 │   ├── css/
 │   │   └── style.css
 │   ├── sketch.js         # Visualización p5.js

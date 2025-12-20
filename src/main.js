@@ -2,7 +2,7 @@ import './css/style.css';
 import { MotionSensor } from './modules/motion.js';
 import { ThereminAudio } from './modules/audio.js';
 import { ThereminStorage } from './modules/storage.js';
-import { createSketch } from './modules/sketch.js';
+import { createSketch } from './modules/sketch.js'; 
 
 const motionSensor = new MotionSensor();
 const thereminAudio = new ThereminAudio();
@@ -43,7 +43,6 @@ startBtn.addEventListener('click', async () => {
 
 createSketch(motionSensor, thereminAudio, storage);
 
-// Limpio recursos al cerrar
 window.addEventListener('beforeunload', async () => {
   await motionSensor.dispose();
   thereminAudio.dispose();

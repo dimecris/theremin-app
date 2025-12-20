@@ -1,14 +1,25 @@
+/**
+ * MÓDULO DE ALMACENAMIENTO LOCAL
+ * 
+ * Este módulo gestiona la persistencia de datos usando LocalStorage del navegador.
+ * Guarda la configuración del usuario (tipo de onda, sensibilidad) y estadísticas
+ * de uso (número de sesiones, última fecha de uso).
+ * 
+ * Permite que la configuración se mantenga entre sesiones y que el usuario
+ * no tenga que reconfigurar la aplicación cada vez que la abre.
+ */
+
 export class ThereminStorage {
   constructor() {
     this.storageKey = 'theremin_settings';
     
-    // Configuración por defecto
+    // Defino la configuración por defecto que se usará la primera vez
     this.defaultSettings = {
-      waveType: 'sine',
-      sensitivity: 1.0,
-      visualMode: 1,
-      lastSession: null,
-      sessionCount: 0
+      waveType: 'sine', // Tipo de onda del oscilador
+      sensitivity: 1.0, // Multiplicador de sensibilidad de los sensores
+      visualMode: 1, // Modo de visualización (si hay varios)
+      lastSession: null, // Timestamp de la última sesión
+      sessionCount: 0 // Contador de veces que se ha usado la app
     };
   }
 
@@ -32,7 +43,7 @@ export class ThereminStorage {
     }
   }
 
-  // Guardo la configuración actual
+  // Guardo la configuración actual en LocalStorage
   saveSettings(settings) {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(settings));
@@ -44,14 +55,14 @@ export class ThereminStorage {
     }
   }
 
-  // Actualizo un campo específico
+  // Actualizo solo un campo específico sin tocar el resto
   updateSetting(key, value) {
     const settings = this.loadSettings();
     settings[key] = value;
     return this.saveSettings(settings);
   }
 
-  // Registro una nueva sesión
+  // Registro una nueva sesión cada vez que se inicia la aplicación
   registerSession() {
     const settings = this.loadSettings();
     settings.sessionCount++;
@@ -62,13 +73,13 @@ export class ThereminStorage {
     return settings.sessionCount;
   }
 
-  // Obtengo un valor específico
+  // Obtengo un valor específico sin cargar toda la configuración
   getSetting(key) {
     const settings = this.loadSettings();
     return settings[key];
   }
 
-  // Reseteo toda la configuración
+  // Reseteo toda la configuración a valores por defecto
   resetSettings() {
     try {
       localStorage.removeItem(this.storageKey);
@@ -80,12 +91,12 @@ export class ThereminStorage {
     }
   }
 
-  // Exporto la configuración como JSON (para debugging)
+  // Exporto la configuración como JSON (útil para debugging)
   exportSettings() {
     return JSON.stringify(this.loadSettings(), null, 2);
   }
 
-  // Importo configuración desde JSON
+  // Importo configuración desde JSON (útil para compartir configuraciones)
   importSettings(jsonString) {
     try {
       const settings = JSON.parse(jsonString);

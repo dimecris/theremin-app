@@ -16,7 +16,20 @@ body {
   width: 100vw;
   height: 100vh;
 }
-
+/* #app-container::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,107,157,0.12), transparent 40%),
+    radial-gradient(circle at 70% 80%, rgba(100,200,255,0.10), transparent 45%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  z-index: 20;
+}
+ */
 #p5-container {
   position: absolute;
   top: 0;
@@ -33,19 +46,20 @@ body {
   z-index: 100;
   padding: 20px 40px;
   font-size: 18px;
-  background: #ff6b9d;
-  border: none;
-  border-radius: 50px;
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(255, 107, 157, 0.4);
+  background: rgba(255, 107, 157, 0.18);
+  border: 1px solid rgba(255, 107, 157, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 30px rgba(255, 107, 157, 0.22);
   transition: all 0.3s ease;
+  border-radius: 50px;
 }
 
 #startBtn:hover {
-  background: #ff5088;
+    background: rgba(255, 107, 157, 0.26);
   transform: translate(-50%, -50%) scale(1.05);
 }
+
 
 #startBtn:disabled {
   background: #666;

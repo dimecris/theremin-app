@@ -36,10 +36,9 @@ theremin/
 │   │   ├── audio.js      # Síntesis de audio y cuantización
 │   │   ├── motion.js     # Lectura de sensores
 │   │   ├── storage.js    # Almacenamiento local
-│   │   └── sketch.js         # Visualización p5.js
+│   │   └── sketch.js     # Visualización p5.js
 │   ├── css/
 │   │   └── style.css
-│   ├── sketch.js         # Visualización p5.js
 │   └── main.js           # Orquestador principal
 ├── index.html
 ├── capacitor.config.json
@@ -76,27 +75,34 @@ npx cap open android
 
 ## Controles
 
-### En Navegador (Modo Debug)
+### En Navegador (Modo Debug Desktop)
 - **Ratón**: Mover para simular inclinación del dispositivo
 - **Teclas 1-4**: Cambiar tipo de onda (sine, square, sawtooth, triangle)
 - **Teclas +/-**: Ajustar sensibilidad
 - **Tecla Q**: Activar/desactivar cuantización musical
+- **Tecla H**: Mostrar/ocultar HUD de información
+
+> **Nota**: Los controles de teclado solo funcionan en navegador para testing. En dispositivo móvil no están disponibles.
 
 ### En Dispositivo Móvil
 - **Inclinación horizontal (eje X)**: Controla la frecuencia del tono
 - **Inclinación vertical (eje Y)**: Controla el brillo del sonido (filtro) y volumen
-- **Botón Iniciar/Detener**: Activa/desactiva el audio y sensores
+- **Botón "Iniciar Theremin"**: Activa sensores y audio (requerido por políticas del navegador)
+- **Botón "Detener"**: Pausa el audio
+
+**Configuración en móvil**: La configuración (tipo de onda, sensibilidad) se carga desde LocalStorage. Para cambiarla, modifica los valores en navegador y se sincronizarán al dispositivo.
 
 ## Mapeo Sensor → Audio
 
 ```javascript
 // Eje X (izquierda/derecha) → Frecuencia (200-1000 Hz)
-tiltX → frequency (cuantizada a escala pentatónica)
+tiltX → frequency (cuantizada a escala pentatónica mayor)
 
-// Eje Y (adelante/atrás) → Filtro + Volumen
+// Eje Y (adelante/atrás) → Filtro
 tiltY → filterFrequency (400-1800 Hz)
-tiltY → volume (0.15-0.3)
 ```
+
+> **Nota**: El volumen está fijo en 0.3. La inclinación vertical solo modifica el brillo del sonido mediante el filtro pasa-bajos.
 
 ## Configuración Guardada
 

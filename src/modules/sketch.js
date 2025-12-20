@@ -1,18 +1,16 @@
-//import p5 from 'p5';
 export const createSketch = (motionSensor, thereminAudio, storage) => {
   return new p5((p) => {
     let particles = [];
     const numParticles = 100;
     let settings;
+    let showHUD = false;
 
     p.setup = () => {
       let cnv = p.createCanvas(p.windowWidth, p.windowHeight);
       cnv.parent('p5-container');
 
-      // Cargo los settings
       settings = storage.loadSettings();
 
-      // Creo todas las partículas
       for (let i = 0; i < numParticles; i++) {
         particles.push(new Particle());
       }
@@ -24,35 +22,31 @@ export const createSketch = (motionSensor, thereminAudio, storage) => {
       const tiltX = motionSensor.getTiltX();
       const tiltY = motionSensor.getTiltY();
 
-      // Aplico la sensibilidad guardada
       const adjustedTiltX = tiltX * settings.sensitivity;
       const adjustedTiltY = tiltY * settings.sensitivity;
 
-      // Actualizo el audio con los valores ajustados
       thereminAudio.update(adjustedTiltX, adjustedTiltY);
 
-      // Muestro información de debug
-      p.fill(255);
-      p.noStroke();
-      p.textSize(14);
-      const mode = motionSensor.isDebugMode() ? 'MOUSE' : 'SENSOR';
-      const audioStatus = thereminAudio.isPlaying ? 'ON' : 'OFF';
-      p.text(`Modo: ${mode} | Audio: ${audioStatus} | Sesiones: ${settings.sessionCount}`, 10, 20);
-      p.text(`Wave: ${settings.waveType} | Sensibilidad: ${settings.sensitivity}`, 10, 40);
+      if (showHUD || motionSensor.isDebugMode()) {
+        p.fill(255);
+        p.noStroke();
+        p.textSize(14);
+        const mode = motionSensor.isDebugMode() ? 'MOUSE' : 'SENSOR';
+        const audioStatus = thereminAudio.isPlaying ? 'ON' : 'OFF';
+        p.text(`Modo: ${mode} | Audio: ${audioStatus} | Sesiones: ${settings.sessionCount}`, 10, 20);
+        p.text(`Wave: ${settings.waveType} | Sensibilidad: ${settings.sensitivity.toFixed(1)}`, 10, 40);
+      }
 
-      // Actualizo y dibujo cada partícula
       for (let particle of particles) {
         particle.update(adjustedTiltX, adjustedTiltY);
         particle.display();
       }
 
-      // Dibujo las ondas según el modo visual
       if (settings.visualMode === 1) {
         drawWaves(adjustedTiltX, adjustedTiltY);
       }
     };
 
-    // Cambio el tipo de onda con teclas (1-4)
     p.keyPressed = () => {
       const waveTypes = ['sine', 'square', 'sawtooth', 'triangle'];
       
@@ -63,7 +57,6 @@ export const createSketch = (motionSensor, thereminAudio, storage) => {
         storage.updateSetting('waveType', settings.waveType);
       }
       
-      // Cambio sensibilidad con + y -
       if (p.key === '+' || p.key === '=') {
         settings.sensitivity = Math.min(2.0, settings.sensitivity + 0.1);
         storage.updateSetting('sensitivity', settings.sensitivity);
@@ -72,71 +65,100 @@ export const createSketch = (motionSensor, thereminAudio, storage) => {
         settings.sensitivity = Math.max(0.1, settings.sensitivity - 0.1);
         storage.updateSetting('sensitivity', settings.sensitivity);
       }
+      
+      if (p.key === 'q' || p.key === 'Q') {
+        thereminAudio.toggleQuantization();
+      }
+      
+      if (p.key === 'h' || p.key === 'H') {
+        showHUD = !showHUD;
+        console.log('HUD:', showHUD ? 'visible' : 'oculto');
+      }
     };
 
-    // Dibujo ondas que reaccionan a la inclinación
     function drawWaves(tiltX, tiltY) {
-      p.noFill();
-      p.stroke(100, 200, 255, 100);
-      p.strokeWeight(2);
+      // Calculo valores reactivos antes de dibujar
+      const waveAmplitude = p.map(Math.abs(tiltY), 0, 1, 8, 28);
+      const waveGap = p.map(Math.abs(tiltX), 0, 1, 22, 36);
+      const waveAlpha = thereminAudio.isPlaying ? 160 : 80;
 
+      // Dibujo tres ondas con efecto neon
       for (let i = 0; i < 3; i++) {
-        p.beginShape();
-        for (let x = 0; x < p.width; x += 10) {
-          let amplitude = 50 + tiltY * 50;
-          let frequency = 0.01 + tiltX * 0.01;
-          let offset = i * 50;
-          
-          let y = p.height / 2 + offset + 
-                  p.sin(x * frequency + p.millis() * 0.001) * amplitude;
-          
-          p.vertex(x, y);
-        }
-        p.endShape();
+        const yOffset = p.height / 2 + (i - 1) * waveGap;
+
+        // Halo exterior (efecto neon)
+        p.stroke(120, 210, 255, waveAlpha * 0.3);
+        p.strokeWeight(6);
+        drawWave(yOffset, waveAmplitude);
+
+        // Núcleo brillante
+        p.stroke(120, 210, 255, waveAlpha);
+        p.strokeWeight(2);
+        drawWave(yOffset, waveAmplitude);
       }
+    }
+
+    function drawWave(yOffset, amplitude) {
+      p.noFill();
+      p.beginShape();
+      for (let x = 0; x <= p.width; x += 12) {
+        const y = yOffset + p.sin(x * 0.015 + p.frameCount * 0.02) * amplitude;
+        p.vertex(x, y);
+      }
+      p.endShape();
     }
 
     p.windowResized = () => {
       p.resizeCanvas(p.windowWidth, p.windowHeight);
     };
 
-    // Clase que define el comportamiento de cada partícula
     class Particle {
       constructor() {
         this.reset();
+        this.disperseFactor = p.random(0.5, 1.5);
+        this.noiseOffsetX = p.random(1000);
+        this.noiseOffsetY = p.random(1000);
       }
 
       reset() {
         this.x = p.random(p.width);
-        this.y = p.random(p.width);
-        this.vx = 0;
-        this.vy = 0;
+        this.y = p.random(p.height);
+        this.vx = p.random(-1, 1);
+        this.vy = p.random(-1, 1);
         this.size = p.random(2, 8);
         this.alpha = 255;
       }
 
-      // Actualizo la posición según la inclinación
       update(tiltX, tiltY) {
-        // La inclinación empuja las partículas
-        this.vx += tiltX * 0.5;
-        this.vy += tiltY * 0.5;
+        const noiseX = p.noise(this.noiseOffsetX) * 2 - 1;
+        const noiseY = p.noise(this.noiseOffsetY) * 2 - 1;
+        
+        this.noiseOffsetX += 0.01;
+        this.noiseOffsetY += 0.01;
+        
+        this.vx += (tiltX * 0.5 + noiseX * 0.2) * this.disperseFactor;
+        this.vy += (tiltY * 0.5 + noiseY * 0.2) * this.disperseFactor;
 
-        // Aplico fricción para que no aceleren infinitamente
         this.vx *= 0.95;
         this.vy *= 0.95;
 
-        // Actualizo posición
         this.x += this.vx;
         this.y += this.vy;
 
-        // Rebote en los bordes de la pantalla
-        if (this.x < 0 || this.x > p.width) {
-          this.vx *= -0.8;
-          this.x = p.constrain(this.x, 0, p.width);
+        if (this.x <= 0) {
+          this.x = 0;
+          this.vx = Math.abs(this.vx) * 0.8;
+        } else if (this.x >= p.width) {
+          this.x = p.width;
+          this.vx = -Math.abs(this.vx) * 0.8;
         }
-        if (this.y < 0 || this.y > p.height) {
-          this.vy *= -0.8;
-          this.y = p.constrain(this.y, 0, p.height);
+
+        if (this.y <= 0) {
+          this.y = 0;
+          this.vy = Math.abs(this.vy) * 0.8;
+        } else if (this.y >= p.height) {
+          this.y = p.height;
+          this.vy = -Math.abs(this.vy) * 0.8;
         }
       }
 

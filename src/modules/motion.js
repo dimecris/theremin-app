@@ -9,90 +9,141 @@
  * 
  * Los valores de inclinación se normalizan entre -1 y 1 para facilitar
  * su uso en el control de audio y visualización.
+ * También gestiona la solicitud de permisos necesarios en iOS.
  */
 
+/* Gestión del sensor de movimiento/orientación usando Capacitor Motion
+   https://capacitorjs.com/docs/apis/motion
+   Flujo:
+   1. new ThereminMotion()
+   2. Usuario hace click en botón START -> requestPermissions()
+   3. then init() para empezar a recibir datos
+   4. start() y getTiltX/Y() para obtener valores normalizados
+*/
 import { Motion } from '@capacitor/motion';
 
 export class MotionSensor {
   constructor() {
-    // Almaceno los valores de inclinación normalizados
+    // Almaceno los valores de inclinación normalizados entre -1 y 1
     this.tiltX = 0; // Inclinación horizontal (izquierda/derecha)
     this.tiltY = 0; // Inclinación vertical (adelante/atrás)
-    this.isActive = false;
-    this.debugMode = false; // Indica si estamos en modo desarrollo
-    this.listener = null; // Referencia al listener de Capacitor
+    this.isActive = false; // Indica si el sensor está funcionando
+    this.debugMode = false; // true si estamos usando el ratón en lugar del sensor
+    this.sensitivity = 1.0; // Sensibilidad (multiplicador) aplicada a los valores de inclinación
+    this.orientationHandler = null; // Referencia al listener de Capacitor (más específico que "listener")
+
+    // Para evitar spam de listeners si se llama init varias veces
+    this._initialized = false;
   }
 
+  // Solicita permisos para acceder a los sensores (necesario en iOS)
+  // IMPORTANTE: Debe llamarse desde un evento de usuario (click/tap)
+  // porque iOS Safari/WebView requiere un "user gesture" para solicitar permisos
+  async requestPermissions() {
+    // En iOS Safari/WebView se requiere user gesture para solicitar permisos
+    const reqs = []; // Array para almacenar las promesas de permisos
+
+    // DeviceMotionEvent (acelerómetro/rotación)
+    // Solo en iOS 13+ existe requestPermission(), en Android no hace falta
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+      reqs.push(DeviceMotionEvent.requestPermission());
+    }
+
+    // DeviceOrientationEvent (orientación/giroscopio)
+    // Solo en iOS 13+ existe requestPermission(), en Android no hace falta
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      reqs.push(DeviceOrientationEvent.requestPermission());
+    }
+
+    // Si no hay permisos que solicitar (Android o navegadores que no los requieren)
+    if (reqs.length === 0) {
+      // En Android normalmente no hace falta este prompt
+      return true;
+    }
+
+    try {
+      // Espero a que se resuelvan todas las solicitudes de permisos
+      const results = await Promise.all(reqs);
+      // iOS devuelve 'granted' / 'denied'
+      // Verifico que TODOS los permisos fueron concedidos
+      return results.every(r => r === 'granted');
+    } catch (e) {
+      console.warn('No se pudo solicitar permiso de movimiento/orientación:', e);
+      return false;
+    }
+  }
+
+  // Inicializa el sensor (en desktop usa el ratón, en móvil usa el giroscopio)
   async init() {
-    // Detecto si estoy en un entorno de escritorio para activar el modo debug
+    // Detecta si está en desktop (sin pantalla táctil)
     const isDesktop = !('ontouchstart' in window);
-    
     if (isDesktop) {
       this.enableMouseDebug();
       return true;
     }
 
+    // Previene inicializar múltiples veces
+    if (this._initialized) return true;
+
     try {
       // Inicio el listener de orientación usando el plugin de Capacitor
-      // Este método funciona tanto en Android como iOS
-      this.listener = await Motion.addListener('orientation', (event) => {
+      // addListener devuelve un objeto PluginListenerHandle que permite
+      // desconectar el listener más tarde con .remove()
+      this.orientationHandler = await Motion.addListener('orientation', (event) => {
         // event.gamma: inclinación izquierda/derecha (-90 a 90 grados)
-        // event.beta: inclinación adelante/atrás (-180 a 180 grados)
-        
-        // Normalizo dividiendo por 45 grados para obtener un rango -1 a 1
-        // que es más cómodo para mapear a frecuencias y parámetros visuales
+        // Divido por 45 para normalizar aproximadamente a -2...2
+        // Luego clamp limita a -1...1 para tener un rango estándar
         this.tiltX = this.clamp(event.gamma / 45, -1, 1);
+        
+        // event.beta: inclinación adelante/atrás (-180 a 180 grados)
+        // Mismo proceso de normalización
         this.tiltY = this.clamp(event.beta / 45, -1, 1);
         
         this.isActive = true;
       });
-
+      
       console.log('Motion sensor inicializado con Capacitor');
       return true;
-
     } catch (error) {
       console.error('Error al inicializar Motion sensor:', error);
       return false;
     }
   }
 
-  // Modo debug para desarrollo en navegador de escritorio
-  // Permite probar la aplicación sin necesidad de un dispositivo móvil
+  // Modo debug: usa la posición del ratón para simular la inclinación del dispositivo
   enableMouseDebug() {
     this.debugMode = true;
     this.isActive = true;
-    
+
+    // Escucho el movimiento del ratón
     window.addEventListener('mousemove', (event) => {
-      // Convierto la posición del ratón a valores entre -1 y 1
-      // Esto simula la inclinación del dispositivo
+      // Convierto la posición X del ratón (0 a window.innerWidth) a valores -1...1
+      // clientX / innerWidth → 0...1
+      // * 2 → 0...2
+      // - 1 → -1...1
       this.tiltX = (event.clientX / window.innerWidth) * 2 - 1;
+      
+      // Lo mismo para Y
       this.tiltY = (event.clientY / window.innerHeight) * 2 - 1;
     });
 
     console.log('Modo DEBUG activado: mueve el ratón para simular inclinación');
   }
 
-  // Limito un valor entre un mínimo y un máximo
+  // Limita un valor entre un mínimo y un máximo
   clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
 
-  getTiltX() {
-    return this.tiltX;
-  }
+  // Getters para obtener los valores de inclinación normalizados
+  getTiltX() { return this.tiltX; }
+  getTiltY() { return this.tiltY; }
+  isDebugMode() { return this.debugMode; }
 
-  getTiltY() {
-    return this.tiltY;
-  }
-
-  isDebugMode() {
-    return this.debugMode;
-  }
-
-  // Limpio el listener cuando ya no lo necesito
+  // Limpia el listener para liberar recursos
   async dispose() {
-    if (this.listener) {
-      await this.listener.remove();
+    if (this.orientationHandler) {
+      await this.orientationHandler.remove();
       console.log('Motion sensor desconectado');
     }
   }

@@ -77,10 +77,7 @@ npx cap open android
 
 ### En Navegador (Modo Debug Desktop)
 - **Ratón**: Mover para simular inclinación del dispositivo
-- **Teclas 1-4**: Cambiar tipo de onda (sine, square, sawtooth, triangle)
-- **Teclas +/-**: Ajustar sensibilidad
-- **Tecla Q**: Activar/desactivar cuantización musical
-- **Tecla H**: Mostrar/ocultar HUD de información
+
 
 > **Nota**: Los controles de teclado solo funcionan en navegador para testing. En dispositivo móvil no están disponibles.
 

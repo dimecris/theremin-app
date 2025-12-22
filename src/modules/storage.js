@@ -15,38 +15,48 @@ export class ThereminStorage {
     
     // Defino la configuración por defecto que se usará la primera vez
     this.defaultSettings = {
-      waveType: 'sine', // Tipo de onda del oscilador
-      sensitivity: 1.0, // Multiplicador de sensibilidad de los sensores
-      visualMode: 1, // Modo de visualización (si hay varios)
-      lastSession: null, // Timestamp de la última sesión
-      sessionCount: 0 // Contador de veces que se ha usado la app
+      waveType: 'sine',
+      visualMode: 1,
+      lastSession: null,
+      sessionCount: 0
     };
+    
+    // Referencia única del objeto settings para mantener consistencia entre módulos
+    this.settings = null;
   }
 
-  // Cargo la configuración guardada o devuelvo los valores por defecto
+  // Carga la configuración desde localStorage. Solo se carga una vez, luego se reutiliza la referencia
   loadSettings() {
+    // Si ya está cargada, devuelve la referencia existente
+    if (this.settings) {
+      return this.settings;
+    }
+    
     try {
       const stored = localStorage.getItem(this.storageKey);
       
       if (stored) {
-        const settings = JSON.parse(stored);
-        console.log('Configuración cargada:', settings);
-        return settings;
+        this.settings = JSON.parse(stored);
+        console.log('Configuración cargada:', this.settings);
+      } else {
+        this.settings = { ...this.defaultSettings };
+        console.log('No hay configuración guardada, usando valores por defecto');
       }
       
-      console.log('No hay configuración guardada, usando valores por defecto');
-      return { ...this.defaultSettings };
+      return this.settings;
       
     } catch (error) {
       console.error('Error al cargar configuración:', error);
-      return { ...this.defaultSettings };
+      this.settings = { ...this.defaultSettings };
+      return this.settings;
     }
   }
 
-  // Guardo la configuración actual en LocalStorage
+  // Guarda la configuración en localStorage y actualiza la referencia interna
   saveSettings(settings) {
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(settings));
+      this.settings = settings; // Actualiza la referencia
       console.log('Configuración guardada:', settings);
       return true;
     } catch (error) {
@@ -55,14 +65,18 @@ export class ThereminStorage {
     }
   }
 
-  // Actualizo solo un campo específico sin tocar el resto
+  // Actualiza solo un campo y mantiene la referencia
   updateSetting(key, value) {
-    const settings = this.loadSettings();
-    settings[key] = value;
-    return this.saveSettings(settings);
+    if (!this.settings) {
+      this.loadSettings();
+    }
+    
+    // Modifica el objeto directamente para mantener la misma referencia
+    this.settings[key] = value;
+    return this.saveSettings(this.settings);
   }
 
-  // Registro una nueva sesión cada vez que se inicia la aplicación
+  // Registra una nueva sesión cada vez que se inicia la aplicación
   registerSession() {
     const settings = this.loadSettings();
     settings.sessionCount++;
@@ -73,16 +87,11 @@ export class ThereminStorage {
     return settings.sessionCount;
   }
 
-  // Obtengo un valor específico sin cargar toda la configuración
-  getSetting(key) {
-    const settings = this.loadSettings();
-    return settings[key];
-  }
-
-  // Reseteo toda la configuración a valores por defecto
+  // Resetea toda la configuración a valores por defecto (no usado actualmente)
   resetSettings() {
     try {
       localStorage.removeItem(this.storageKey);
+      this.settings = null; // Elimina la referencia
       console.log('Configuración reseteada');
       return true;
     } catch (error) {
@@ -91,19 +100,4 @@ export class ThereminStorage {
     }
   }
 
-  // Exporto la configuración como JSON (útil para debugging)
-  exportSettings() {
-    return JSON.stringify(this.loadSettings(), null, 2);
-  }
-
-  // Importo configuración desde JSON (útil para compartir configuraciones)
-  importSettings(jsonString) {
-    try {
-      const settings = JSON.parse(jsonString);
-      return this.saveSettings(settings);
-    } catch (error) {
-      console.error('Error al importar configuración:', error);
-      return false;
-    }
-  }
 }

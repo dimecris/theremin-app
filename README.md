@@ -46,22 +46,51 @@ theremin/
 └── vite.config.js
 ```
 
-## Instalación
+## Instalación desde cero
+
+### 1. Verificar entorno
 
 ```bash
-# Clonar el repositorio
-git clone [URL_DEL_REPO]
+# Verificar Node.js y npm instalados
+node -v
+npm -v
+```
+### 2. Crear proyecto con Vite
+
+```bash
+# Crear proyecto (template vanilla)
+npm create vite@latest theremin -- --template vanilla
+
+# Entrar al directorio e instalar dependencias
 cd theremin
-
-# Instalar dependencias
 npm install
-
-# Ejecutar en desarrollo
-npm run dev
 ```
 
+### 3. Instalar Capacitor
+```bash
+# Instalar Capacitor Core y CLI
+npm install @capacitor/core @capacitor/cli --save
+
+# Inicializar Capacitor (modo interactivo)
+npx cap init
+
+# O setear todas las opciones en un comando
+npx cap init "Theremin" "com.theremin.app" --web-dir dist
 ## Build y Deploy en Android
 
+```
+### 4. Añadir plataforma Android
+```bash
+# Añadir plataforma Android
+npm install @capacitor/android
+npx cap add android
+```
+### 5. Instalar plugins de Capacitor
+```bash
+# Instalar Motion y Haptics
+npm install @capacitor/motion @capacitor/haptics
+```
+### 5. Compilar el proyecto y testearlo en Android studio
 ```bash
 # Compilar el proyecto
 npm run build
@@ -96,7 +125,7 @@ npx cap open android
 tiltX → frequency (cuantizada a escala pentatónica mayor)
 
 // Eje Y (adelante/atrás) → Filtro
-tiltY → filterFrequency (400-1800 Hz)
+tiltY → filterFrequency (400-1400 Hz)
 ```
 
 > **Nota**: El volumen está fijo en 0.3. La inclinación vertical solo modifica el brillo del sonido mediante el filtro pasa-bajos.

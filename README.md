@@ -22,7 +22,7 @@ Theremin Glitch es una experiencia audiovisual interactiva donde el móvil "toca
   - `@capacitor/motion` - Sensores de orientación
   - `@capacitor/haptics` - Feedback táctil
 - **p5.js** - Visualización canvas
-- **Web Audio API** - Síntesis de sonido
+- **p5.sound** - Síntesis de audio
 
 ## Estructura del Proyecto
 
@@ -55,6 +55,7 @@ theremin/
 node -v
 npm -v
 ```
+
 ### 2. Crear proyecto con Vite
 
 ```bash
@@ -67,6 +68,9 @@ npm install
 ```
 
 ### 3. Instalar Capacitor
+
+📖 [Documentación oficial de Capacitor](https://capacitorjs.com/docs/getting-started)
+
 ```bash
 # Instalar Capacitor Core y CLI
 npm install @capacitor/core @capacitor/cli --save
@@ -76,21 +80,76 @@ npx cap init
 
 # O setear todas las opciones en un comando
 npx cap init "Theremin" "com.theremin.app" --web-dir dist
-## Build y Deploy en Android
-
 ```
+
 ### 4. Añadir plataforma Android
+
+📖 [Configuración Android en Capacitor](https://capacitorjs.com/docs/android)
+
 ```bash
 # Añadir plataforma Android
 npm install @capacitor/android
 npx cap add android
 ```
+
 ### 5. Instalar plugins de Capacitor
+
 ```bash
 # Instalar Motion y Haptics
 npm install @capacitor/motion @capacitor/haptics
 ```
-### 5. Compilar el proyecto y testearlo en Android studio
+
+### 6. Configurar p5.js
+
+**Problema**: La librería p5.sound (v1.11.1) utiliza referencias globales que rompen la aplicación si se importan como módulos ES modernos (`import ...`).
+
+**Solución**: Cargar p5.js como scripts clásicos en modo instancia.
+
+```bash
+# Descargar p5.js y p5.sound en la carpeta public/
+cd public
+curl -O https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.js
+curl -O https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.js
+cd ..
+```
+
+En `index.html`, cargar los scripts **antes** de tu código module:
+
+```html
+<!-- Scripts p5 ANTES del module -->
+<script src="/p5.js"></script>
+<script src="/p5.sound.min.js"></script>
+
+<!-- Tu código module AL FINAL -->
+<script type="module" src="/src/main.js"></script>
+```
+
+En tu código JavaScript, usar **modo instancia** de p5.js:
+
+```javascript
+// src/modules/sketch.js
+export const createSketch = (motionSensor, thereminAudio, storage) => {
+  return new p5((p) => {
+    p.setup = () => {
+      // Tu código aquí
+    };
+    
+    p.draw = () => {
+      // Tu código aquí
+    };
+  });
+};
+```
+
+## Desarrollo
+
+```bash
+# Ejecutar en desarrollo (navegador)
+npm run dev
+```
+
+## Build y Deploy en Android
+
 ```bash
 # Compilar el proyecto
 npm run build
@@ -102,21 +161,20 @@ npx cap sync
 npx cap open android
 ```
 
+Desde Android Studio, conecta tu dispositivo y pulsa **Run** para instalar la app.
+
 ## Controles
 
 ### En Navegador (Modo Debug Desktop)
 - **Ratón**: Mover para simular inclinación del dispositivo
 
-
-> **Nota**: Los controles de teclado solo funcionan en navegador para testing. En dispositivo móvil no están disponibles.
+> **Nota**: El modo debug solo está disponible en desktop. Los controles táctiles están diseñados para dispositivo móvil.
 
 ### En Dispositivo Móvil
 - **Inclinación horizontal (eje X)**: Controla la frecuencia del tono
 - **Inclinación vertical (eje Y)**: Controla el brillo del sonido (filtro) y volumen
 - **Botón "Iniciar Theremin"**: Activa sensores y audio (requerido por políticas del navegador)
-- **Botón "Detener"**: Pausa el audio
-
-**Configuración en móvil**: La configuración (tipo de onda, sensibilidad) se carga desde LocalStorage. Para cambiarla, modifica los valores en navegador y se sincronizarán al dispositivo.
+- **Botones de tipo de onda**: Cambian el timbre (Sinusoidal, Cuadrada, Diente de Sierra, Triangular)
 
 ## Mapeo Sensor → Audio
 
@@ -124,11 +182,10 @@ npx cap open android
 // Eje X (izquierda/derecha) → Frecuencia (200-1000 Hz)
 tiltX → frequency (cuantizada a escala pentatónica mayor)
 
-// Eje Y (adelante/atrás) → Filtro
+// Eje Y (adelante/atrás) → Filtro + Volumen
 tiltY → filterFrequency (400-1400 Hz)
+tiltY → volume (baseVolume + intensity)
 ```
-
-> **Nota**: El volumen está fijo en 0.3. La inclinación vertical solo modifica el brillo del sonido mediante el filtro pasa-bajos.
 
 ## Configuración Guardada
 

@@ -78,7 +78,7 @@ npm install @capacitor/core @capacitor/cli --save
 # Inicializar Capacitor (modo interactivo)
 npx cap init
 
-# O setear todas las opciones en un comando
+# O configurar todas las opciones en un comando
 npx cap init "Theremin" "com.theremin.app" --web-dir dist
 ```
 
@@ -113,29 +113,29 @@ curl -O https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.sound.min.j
 cd ..
 ```
 
-En `index.html`, cargar los scripts **antes** de tu código module:
+En `index.html`, cargar los scripts **antes** del código module:
 
 ```html
 <!-- Scripts p5 ANTES del module -->
 <script src="/p5.js"></script>
 <script src="/p5.sound.min.js"></script>
 
-<!-- Tu código module AL FINAL -->
+<!-- Código module AL FINAL -->
 <script type="module" src="/src/main.js"></script>
 ```
 
-En tu código JavaScript, usar **modo instancia** de p5.js:
+En el código JavaScript, usar **modo instancia** de p5.js:
 
 ```javascript
 // src/modules/sketch.js
 export const createSketch = (motionSensor, thereminAudio, storage) => {
   return new p5((p) => {
     p.setup = () => {
-      // Tu código aquí
+      // Código aquí
     };
     
     p.draw = () => {
-      // Tu código aquí
+      // Código aquí
     };
   });
 };
@@ -161,7 +161,7 @@ npx cap sync
 npx cap open android
 ```
 
-Desde Android Studio, conecta tu dispositivo y pulsa **Run** para instalar la app.
+Desde Android Studio, conectar el dispositivo y pulsar **Run** para instalar la app.
 
 ## Controles
 
